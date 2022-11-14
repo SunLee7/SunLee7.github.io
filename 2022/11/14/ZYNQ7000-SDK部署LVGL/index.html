@@ -1,0 +1,673 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Sun Lee">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="前言很久没静下心来写博客了，学了一些新的东西但也没什么能写的出来的。对很多事情还是要一些热情的，以后会常更新博客，地址https:&#x2F;&#x2F;sunlee.top，也算是对自己小小的督促。前两天在ZYNQ上安装了个ST7789v的LCD，顺便写一下过程。 LVGLLVGL官网https:&#x2F;&#x2F;lvgl.io&#x2F;一个开源的图形库，主要用于MCU上屏幕UI的部署，功能完善，封装合理，可裁切性强，当然也可以实现Li">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ZYNQ7000_SDK部署LVGL">
+<meta property="og:url" content="http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/index.html">
+<meta property="og:site_name" content="SunLee的停靠小站">
+<meta property="og:description" content="前言很久没静下心来写博客了，学了一些新的东西但也没什么能写的出来的。对很多事情还是要一些热情的，以后会常更新博客，地址https:&#x2F;&#x2F;sunlee.top，也算是对自己小小的督促。前两天在ZYNQ上安装了个ST7789v的LCD，顺便写一下过程。 LVGLLVGL官网https:&#x2F;&#x2F;lvgl.io&#x2F;一个开源的图形库，主要用于MCU上屏幕UI的部署，功能完善，封装合理，可裁切性强，当然也可以实现Li">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-39-05.png">
+<meta property="og:image" content="http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-51-09.png">
+<meta property="og:image" content="http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-54-16.png">
+<meta property="og:image" content="http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-20-03-31.png">
+<meta property="og:image" content="http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-20-35-10.png">
+<meta property="og:image" content="http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-39-05.png">
+<meta property="article:published_time" content="2022-11-14T11:26:44.000Z">
+<meta property="article:modified_time" content="2022-11-14T13:00:27.916Z">
+<meta property="article:author" content="Sun Lee">
+<meta property="article:tag" content="-ZYNQ">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-39-05.png">
+  
+  
+  
+  <title>ZYNQ7000_SDK部署LVGL - SunLee的停靠小站</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.3","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"xuWnFNoXH0mtoZ210ssO8PpE-gzGzoHsz","app_key":"91PJAKLdMm6jdyuOn139MLFw","server_url":"https://xuwnfnox.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>SunLee的停靠小站</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/banner_img.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="ZYNQ7000_SDK部署LVGL"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2022-11-14 19:26" pubdate>
+          2022年11月14日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          8.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          73 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">ZYNQ7000_SDK部署LVGL</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>很久没静下心来写博客了，学了一些新的东西但也没什么能写的出来的。对很多事情还是要一些热情的，以后会常更新博客，地址<a target="_blank" rel="noopener" href="https://sunlee.top/">https://sunlee.top</a>，也算是对自己小小的督促。<br>前两天在ZYNQ上安装了个ST7789v的LCD，顺便写一下过程。<br><img src="/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-39-05.png" srcset="/img/loading.gif" lazyload></p>
+<h1 id="LVGL"><a href="#LVGL" class="headerlink" title="LVGL"></a>LVGL</h1><p>LVGL官网<a target="_blank" rel="noopener" href="https://lvgl.io/">https://lvgl.io/</a><br>一个开源的图形库，主要用于MCU上屏幕UI的部署，功能完善，封装合理，可裁切性强，当然也可以实现Linux上fbx的部署。以前在很多MCU上都实现过，比较熟悉，这次主要是要试一下ZYNQ的SPI EMIO以及LCD的驱动。</p>
+<h1 id="Vivado"><a href="#Vivado" class="headerlink" title="Vivado"></a>Vivado</h1><p>这里用Vivado v2018.3，主要是因为跟着正点原子的教程走了，ZYNQ的使用离不开Xilinx某一套的全家桶。<br>ZYNQ系统上分PL以及PS两部分，手上的开发板居然PS一个IO都没留出来，全留的PL段接口，给我一开始不是很熟悉FPGA的人来说可是让我走了不少弯路。<br>既然PS端IO没留出来还要用PS端的SPI模块只能用EMIO引出了，ZYNQ上PS端的IO叫MIO，但是也可以用内部的FPGA来引出它的IO，叫EMIO，也勉强算是功能强大。<br>不过查了一下UG585手册，EMIO引出的SPI接口速度只能到25M，而PS端的MIO可以达到50M，问题不大。<br><img src="/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-51-09.png" srcset="/img/loading.gif" lazyload><br>Vidado上主要步骤有新建工程、在Block Design里添加ZYNQ7 Processing System（PS）、配置PS端内的DDR型号，添加使能SPI EMIO。<br><img src="/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-54-16.png" srcset="/img/loading.gif" lazyload><br>顺便添加一下串口，使能几个普通的EMIO来驱动LED。<br>退出来。<br>因为FPGA要设置IO管脚的，叫做管脚约束，所以要在GPIO以及SPI的接口上右键Make External，引出到顶层模块上。<br>完事之后在source的block design上右键，先generate output products再create HDL wapper，这样整个PS端就变成了一个.v文件，这里没有别的功能的话直接进Elaborated Design，在I&#x2F;O Ports里直接配置IO管脚。<br><img src="/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-20-03-31.png" srcset="/img/loading.gif" lazyload><br>最后直接Generate Bitstream，生成FPGA端的文件。<br>最后File&gt;Export&gt;Export Hardware，记得勾上include bitstream，完成PL端配置。</p>
+<h1 id="SDK"><a href="#SDK" class="headerlink" title="SDK"></a>SDK</h1><h2 id="初始化外设"><a href="#初始化外设" class="headerlink" title="初始化外设"></a>初始化外设</h2><p>在vidado中file&gt;launch SDK。直接打开的话应该只会有一个design_1_wapper_hw_platform，在这个基础上要新建一个BSP工程，BSP板级支持包里面包含了要用到的一些库函数，最后新建一个应用工程。后面就是裸机C语言编程的内容了。<br>GPIO以及LCD初始化主要代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">void</span> <span class="hljs-title function_">Lcd_Gpio_Init</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span>&#123;<br>	XGpioPs_Config *ConfigPtr;<br><br>	ConfigPtr = XGpioPs_LookupConfig(GPIO_DEVICE_ID);<br>	XGpioPs_CfgInitialize(&amp;Gpio, ConfigPtr,ConfigPtr-&gt;BaseAddr);<br><br>	XGpioPs_SetDirectionPin(&amp;Gpio, EMIO_LCD_CD, <span class="hljs-number">1</span>);<br>	XGpioPs_SetOutputEnablePin(&amp;Gpio, EMIO_LCD_CD, <span class="hljs-number">1</span>);<br><br>	XGpioPs_SetDirectionPin(&amp;Gpio, EMIO_LCD_RES, <span class="hljs-number">1</span>);<br>	XGpioPs_SetOutputEnablePin(&amp;Gpio, EMIO_LCD_RES, <span class="hljs-number">1</span>);<br><br>	XGpioPs_SetDirectionPin(&amp;Gpio, LED_1, <span class="hljs-number">1</span>);<br>	XGpioPs_SetOutputEnablePin(&amp;Gpio, LED_1, <span class="hljs-number">1</span>);<br><br>	XGpioPs_SetDirectionPin(&amp;Gpio, LED_2, <span class="hljs-number">1</span>);<br>	XGpioPs_SetOutputEnablePin(&amp;Gpio, LED_2, <span class="hljs-number">1</span>);<br><br>	XGpioPs_SetDirectionPin(&amp;Gpio, LED_3, <span class="hljs-number">1</span>);<br>	XGpioPs_SetOutputEnablePin(&amp;Gpio, LED_3, <span class="hljs-number">1</span>);<br><br>	XGpioPs_SetDirectionPin(&amp;Gpio, LED_4, <span class="hljs-number">1</span>);<br>	XGpioPs_SetOutputEnablePin(&amp;Gpio, LED_4, <span class="hljs-number">1</span>);<br><br>	XGpioPs_WritePin(&amp;Gpio, EMIO_LCD_CD, <span class="hljs-number">0</span>);<br>	XGpioPs_WritePin(&amp;Gpio, EMIO_LCD_RES, <span class="hljs-number">0</span>);<br><br>	XGpioPs_WritePin(&amp;Gpio, LED_1, <span class="hljs-number">1</span>);<br>	XGpioPs_WritePin(&amp;Gpio, LED_2, <span class="hljs-number">1</span>);<br>	XGpioPs_WritePin(&amp;Gpio, LED_3, <span class="hljs-number">0</span>);<br>	XGpioPs_WritePin(&amp;Gpio, LED_4, <span class="hljs-number">0</span>);<br>&#125;<br><br><br><span class="hljs-type">void</span> <span class="hljs-title function_">Lcd_Spi_Init</span><span class="hljs-params">()</span>&#123;<br>	XSpiPs_Config *SpiConfig;<br><br>	SpiConfig = XSpiPs_LookupConfig(SPI_DEVICE_ID);<br>	XSpiPs_CfgInitialize(&amp;SpiInstance, SpiConfig,<br>			SpiConfig-&gt;BaseAddress);<br><br>	XSpiPs_SetOptions(&amp;SpiInstance, XSPIPS_MASTER_OPTION |<br>				   XSPIPS_FORCE_SSELECT_OPTION);<br>	XSpiPs_SetClkPrescaler(&amp;SpiInstance, XSPIPS_CLK_PRESCALE_4);<br>&#125;<br><br><br><span class="hljs-type">void</span> <span class="hljs-title function_">delay</span><span class="hljs-params">(<span class="hljs-type">unsigned</span> <span class="hljs-type">char</span> i)</span>&#123;<br>	<span class="hljs-keyword">volatile</span> <span class="hljs-type">int</span> Delay;<br>	<span class="hljs-keyword">volatile</span> <span class="hljs-type">int</span> k;<br>	<span class="hljs-keyword">for</span>(k=<span class="hljs-number">0</span>;k&lt;i;k++)<br>	<span class="hljs-keyword">for</span> (Delay = <span class="hljs-number">0</span>; Delay &lt; <span class="hljs-number">10000</span>; Delay++);<br>&#125;<br><br><span class="hljs-type">void</span> <span class="hljs-title function_">LCD_WR_DATA8</span><span class="hljs-params">(u8 dat)</span>&#123;<br>	XGpioPs_WritePin(&amp;Gpio, EMIO_LCD_CD, <span class="hljs-number">1</span>);<br>	XSpiPs_PolledTransfer(&amp;SpiInstance, &amp;dat, <span class="hljs-literal">NULL</span>, <span class="hljs-number">1</span>);<br>&#125;<br><br><span class="hljs-type">void</span> <span class="hljs-title function_">LCD_WR_REG</span><span class="hljs-params">(u8 dat)</span>&#123;<br>	XGpioPs_WritePin(&amp;Gpio, EMIO_LCD_CD, <span class="hljs-number">0</span>);<br>	XSpiPs_PolledTransfer(&amp;SpiInstance, &amp;dat, <span class="hljs-literal">NULL</span>, <span class="hljs-number">1</span>);<br>&#125;<br><br><span class="hljs-type">void</span> <span class="hljs-title function_">Lcd_Init</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span>&#123;<br>  XGpioPs_WritePin(&amp;Gpio, EMIO_LCD_RES, <span class="hljs-number">0</span>);<br>  delay(<span class="hljs-number">10</span>);<br>  XGpioPs_WritePin(&amp;Gpio, EMIO_LCD_RES, <span class="hljs-number">1</span>);<br>  delay(<span class="hljs-number">10</span>);<br>  LCD_WR_REG(<span class="hljs-number">0x36</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x00</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0x3A</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x05</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xB2</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x0C</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x0C</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x00</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x33</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x33</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xB7</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x35</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xBB</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x19</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xC0</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x2C</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xC2</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x01</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xC3</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x12</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xC4</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x20</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xC6</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x0F</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xD0</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0xA4</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0xA1</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xE0</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0xD0</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x04</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x0D</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x11</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x13</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x2B</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x3F</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x54</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x4C</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x18</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x0D</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x0B</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x1F</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x23</span>);<br><br>  LCD_WR_REG(<span class="hljs-number">0xE1</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0xD0</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x04</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x0C</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x11</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x13</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x2C</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x3F</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x44</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x51</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x2F</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x1F</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x1F</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x20</span>);<br>  LCD_WR_DATA8(<span class="hljs-number">0x23</span>);<br><span class="hljs-comment">//  LCD_WR_REG(0x21); // 注释掉 不然颜色反的</span><br>  LCD_WR_REG(<span class="hljs-number">0x11</span>);<br>  LCD_WR_REG(<span class="hljs-number">0x29</span>);<br>  Address_set(<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">240</span><span class="hljs-number">-1</span>,<span class="hljs-number">320</span><span class="hljs-number">-1</span>);<br>  <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">240</span> * <span class="hljs-number">320</span>; i++)<br>	  LCD_WR_DATA(BLACK);<br>&#125;<br><span class="hljs-type">void</span> <span class="hljs-title function_">LCD_WR_DATA</span><span class="hljs-params">(u16 dat)</span><br>&#123;<br>	u8 spi_dat[<span class="hljs-number">2</span>];<br>	XGpioPs_WritePin(&amp;Gpio, EMIO_LCD_CD, <span class="hljs-number">1</span>);<br>    spi_dat[<span class="hljs-number">0</span>]=dat&gt;&gt;<span class="hljs-number">8</span>;<br>    spi_dat[<span class="hljs-number">1</span>]=dat;<br>    XSpiPs_PolledTransfer(&amp;SpiInstance, spi_dat, <span class="hljs-literal">NULL</span>, <span class="hljs-number">2</span>);<br>&#125;<br><span class="hljs-type">void</span> <span class="hljs-title function_">Address_set</span><span class="hljs-params">(<span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> x1,<span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> y1,<span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> x2,<span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> y2)</span><br>&#123;<br>   LCD_WR_REG(<span class="hljs-number">0x2a</span>);<br>   LCD_WR_DATA8(x1&gt;&gt;<span class="hljs-number">8</span>);<br>   LCD_WR_DATA8(x1);<br>   LCD_WR_DATA8(x2&gt;&gt;<span class="hljs-number">8</span>);<br>   LCD_WR_DATA8(x2);<br>   LCD_WR_REG(<span class="hljs-number">0x2b</span>);<br>   LCD_WR_DATA8(y1&gt;&gt;<span class="hljs-number">8</span>);<br>   LCD_WR_DATA8(y1);<br>   LCD_WR_DATA8(y2&gt;&gt;<span class="hljs-number">8</span>);<br>   LCD_WR_DATA8(y2);<br>   LCD_WR_REG(<span class="hljs-number">0x2C</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="LVGL-1"><a href="#LVGL-1" class="headerlink" title="LVGL"></a>LVGL</h2><p>从仓库克隆代码到应用工程的文件夹里。</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs awk">git clone -b v8.<span class="hljs-number">3.3</span>  https:<span class="hljs-regexp">//gi</span>thub.com<span class="hljs-regexp">/lvgl/</span>lvgl.git<br></code></pre></td></tr></table></figure>
+<p>将文件夹里面的lv_conf_template.h拷出到外面一级文件夹改名为lv_conf.h，然后进去把第一行宏定义#if 0改为#if 1。<br>可能需要添加一些include目录，酌情处理。<br>最后目录结构如下：<br><img src="/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-20-35-10.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="LVGL-Porting"><a href="#LVGL-Porting" class="headerlink" title="LVGL Porting"></a>LVGL Porting</h2><p>这部分内容lvgl做起来很简单，只要图形库与LCD驱动的部分衔接好就行。</p>
+<h3 id="LCD"><a href="#LCD" class="headerlink" title="LCD"></a>LCD</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-type">void</span> <span class="hljs-title function_">my_lvgl_init</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>	lv_init();<br><br>	<span class="hljs-comment">/*A static or global variable to store the buffers*/</span><br>	<span class="hljs-type">static</span> <span class="hljs-type">lv_disp_draw_buf_t</span> disp_buf;<br><br>	<span class="hljs-comment">/*Static or global buffer(s). The second buffer is optional*/</span><br>	<span class="hljs-type">static</span> <span class="hljs-type">lv_color_t</span> buf_1[MY_DISP_HOR_RES * <span class="hljs-number">10</span>];<br>	<span class="hljs-type">static</span> <span class="hljs-type">lv_color_t</span> buf_2[MY_DISP_HOR_RES * <span class="hljs-number">10</span>];<br><br>	<span class="hljs-comment">/*Initialize `disp_buf` with the buffer(s). With only one buffer use NULL instead buf_2 */</span><br>	lv_disp_draw_buf_init(&amp;disp_buf, buf_1, buf_2, MY_DISP_HOR_RES*<span class="hljs-number">10</span>);<br><br>	lv_disp_drv_init(&amp;disp_drv);            <span class="hljs-comment">/*Basic initialization*/</span><br>	disp_drv.draw_buf = &amp;disp_buf;          <span class="hljs-comment">/*Set an initialized buffer*/</span><br>	disp_drv.flush_cb = my_flush_cb;        <span class="hljs-comment">/*Set a flush callback to draw to the display*/</span><br>	disp_drv.hor_res = <span class="hljs-number">240</span>;                 <span class="hljs-comment">/*Set the horizontal resolution in pixels*/</span><br>	disp_drv.ver_res = <span class="hljs-number">320</span>;                 <span class="hljs-comment">/*Set the vertical resolution in pixels*/</span><br><br>	<span class="hljs-type">lv_disp_t</span> * disp;<br>	disp = lv_disp_drv_register(&amp;disp_drv); <span class="hljs-comment">/*Register the driver and save the created display objects*/</span><br><br>    <span class="hljs-comment">// 简单初始化个例程</span><br>	lv_example_spinner_1();<br>&#125;<br><br><span class="hljs-type">void</span> <span class="hljs-title function_">my_flush_cb</span><span class="hljs-params">(<span class="hljs-type">lv_disp_drv_t</span> * disp_drv, <span class="hljs-type">const</span> <span class="hljs-type">lv_area_t</span> * area, <span class="hljs-type">lv_color_t</span> * color_p)</span><br>&#123;<br>    <span class="hljs-comment">/*The most simple case (but also the slowest) to put all pixels to the screen one-by-one</span><br><span class="hljs-comment">     *`put_px` is just an example, it needs to be implemented by you.*/</span><br>    <span class="hljs-comment">// 画个窗</span><br>    Address_set(area-&gt;x1, area-&gt;y1, area-&gt;x2, area-&gt;y2);<br>    <span class="hljs-comment">// 向窗子里推像素颜色</span><br>    <span class="hljs-keyword">for</span>(<span class="hljs-type">int</span> i = <span class="hljs-number">0</span>; i &lt; (area-&gt;x2 - area-&gt;x1 + <span class="hljs-number">1</span>) * (area-&gt;y2 - area-&gt;y1 + <span class="hljs-number">1</span>); i++)<br>    &#123;<br>    	LCD_WR_DATA(color_p-&gt;full);<br>    	color_p++;<br>    &#125;<br>    <span class="hljs-comment">/* IMPORTANT!!!</span><br><span class="hljs-comment">     * Inform the graphics library that you are ready with the flushing*/</span><br>    lv_disp_flush_ready(disp_drv);<br>&#125;<br></code></pre></td></tr></table></figure>
+<h3 id="while循环"><a href="#while循环" class="headerlink" title="while循环"></a>while循环</h3><p>在主循环里面循环调用<code>lv_timer_handler();</code>，zynq裸机的延时5ms，这个延时准不准不重要<code>usleep(5000);</code>。</p>
+<h3 id="定时器中断"><a href="#定时器中断" class="headerlink" title="定时器中断"></a>定时器中断</h3><p>定时器初始化以及服务函数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-keyword">define</span> TIMER_DEVICE_ID     XPAR_XSCUTIMER_0_DEVICE_ID   <span class="hljs-comment">//定时器ID</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> INTC_DEVICE_ID      XPAR_SCUGIC_SINGLE_DEVICE_ID <span class="hljs-comment">//中断ID</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> TIMER_IRPT_INTR     XPAR_SCUTIMER_INTR           <span class="hljs-comment">//定时器中断ID</span></span><br><br><span class="hljs-comment">//私有定时器的时钟频率 = CPU时钟频率/2 = 333MHz</span><br><span class="hljs-comment">//0.2s闪烁一次,0.2*1000_000_000/(1000/333) - 1 = 3F83C3F</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> TIMER_LOAD_VALUE	333000 - 1<span class="hljs-comment">//0x3F83C3F</span></span><br><br>XScuGic Intc;               <span class="hljs-comment">//中断控制器驱动程序实例</span><br>XScuTimer Timer;            <span class="hljs-comment">//定时器驱动程序实例</span><br><br><span class="hljs-type">void</span> <span class="hljs-title function_">TimerIntrHandler</span><span class="hljs-params">(<span class="hljs-type">void</span> *CallBackRef)</span>;<br><br><span class="hljs-comment">//定时器中断初始化</span><br><span class="hljs-type">void</span> <span class="hljs-title function_">timer_intr_init</span><span class="hljs-params">(XScuGic *intc_ptr,XScuTimer *timer_ptr)</span><br>&#123;<br>    <span class="hljs-comment">//初始化中断控制器</span><br>    XScuGic_Config *intc_cfg_ptr;<br>    intc_cfg_ptr = XScuGic_LookupConfig(INTC_DEVICE_ID);<br>    XScuGic_CfgInitialize(intc_ptr, intc_cfg_ptr,<br>            intc_cfg_ptr-&gt;CpuBaseAddress);<br>    <span class="hljs-comment">//设置并打开中断异常处理功能</span><br>    Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,<br>            (Xil_ExceptionHandler)XScuGic_InterruptHandler, intc_ptr);<br>    Xil_ExceptionEnable();<br><br>    <span class="hljs-comment">//设置定时器中断</span><br>    XScuGic_Connect(intc_ptr, TIMER_IRPT_INTR,<br>          (Xil_ExceptionHandler)TimerIntrHandler, (<span class="hljs-type">void</span> *)timer_ptr);<br><br>    XScuGic_Enable(intc_ptr, TIMER_IRPT_INTR); <span class="hljs-comment">//使能GIC中的定时器中断</span><br>    XScuTimer_EnableInterrupt(timer_ptr);      <span class="hljs-comment">//使能定时器中断</span><br>&#125;<br><span class="hljs-type">int</span> <span class="hljs-title function_">time_isr_init</span><span class="hljs-params">(<span class="hljs-type">void</span>)</span><br>&#123;<br>    <span class="hljs-type">int</span> status;<br>    <span class="hljs-comment">//私有定时器初始化</span><br>    XScuTimer_Config *timer_cfg_ptr;<br>    XScuTimer *timer_ptr = &amp;Timer;<br>    timer_cfg_ptr = XScuTimer_LookupConfig(TIMER_DEVICE_ID);<br>    <span class="hljs-keyword">if</span> (<span class="hljs-literal">NULL</span> == timer_cfg_ptr)<br>        <span class="hljs-keyword">return</span> XST_FAILURE;<br>    status = XScuTimer_CfgInitialize(timer_ptr, timer_cfg_ptr,<br>            timer_cfg_ptr-&gt;BaseAddr);<br>    <span class="hljs-keyword">if</span> (status != XST_SUCCESS)<br>        <span class="hljs-keyword">return</span> XST_FAILURE;<br><br>    XScuTimer_LoadTimer(timer_ptr, TIMER_LOAD_VALUE); <span class="hljs-comment">// 加载计数周期</span><br>    XScuTimer_EnableAutoReload(timer_ptr);            <span class="hljs-comment">// 设置自动装载模式</span><br><br>    timer_intr_init(&amp;Intc,&amp;Timer);<br>    XScuTimer_Start(&amp;Timer);         <span class="hljs-comment">//启动定时器</span><br>    <span class="hljs-keyword">return</span> XST_SUCCESS;<br>&#125;<br><br><span class="hljs-type">void</span> <span class="hljs-title function_">TimerIntrHandler</span><span class="hljs-params">(<span class="hljs-type">void</span> *CallBackRef)</span><br>&#123;<br>	XScuTimer *TimerInstancePtr = (XScuTimer *) CallBackRef;<br>    <span class="hljs-comment">// 让灯闪 确保中断初始化无误</span><br>	<span class="hljs-keyword">if</span>(XGpioPs_ReadPin(&amp;Gpio, LED_2))<br>		XGpioPs_WritePin(&amp;Gpio, LED_2, <span class="hljs-number">0</span>);<br>	<span class="hljs-keyword">else</span><br>		XGpioPs_WritePin(&amp;Gpio, LED_2, <span class="hljs-number">1</span>);<br><br>	lv_tick_inc(<span class="hljs-number">1</span>);<br><br>	XScuTimer_ClearInterruptStatus(TimerInstancePtr);<br>&#125;<br></code></pre></td></tr></table></figure>
+<h1 id="结束"><a href="#结束" class="headerlink" title="结束"></a>结束</h1><p>至此LVGL部署就完成了，主要要注意的是先把SPI以及LCD的驱动调通了，然后再部署LVGL，LVGL整个库功能很多，可以代替一部分操作系统的功能，可以多看看LVGL文档。<br><img src="/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/2022-11-14-19-39-05.png" srcset="/img/loading.gif" lazyload></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ZYNQ/">#-ZYNQ</a>
+      
+    </div>
+  
+</div>
+
+
+              
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/11/14/%E8%A5%BF%E6%BA%90%E5%A4%A7%E9%81%93-%E5%A4%A9%E6%B6%A6%E8%B7%AF/" title="西源大道-天润路">
+                        <span class="hidden-mobile">西源大道-天润路</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  <article id="comments" lazyload>
+    
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"xuWnFNoXH0mtoZ210ssO8PpE-gzGzoHsz","appKey":"91PJAKLdMm6jdyuOn139MLFw","path":"window.location.pathname","placeholder":null,"avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+  </article>
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
