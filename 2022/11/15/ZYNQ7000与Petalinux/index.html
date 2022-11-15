@@ -1,0 +1,677 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Sun Lee">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="前言ZYNQ内部集成两个ARM Cortex A9核心，Xilinx也推出了Petalinux工具，与Vidado搭配可以方便地完成Linux的uboot、kernel、rootfs部署。开发板上集成了HDMI，但是需要在FPGA中实现逻辑，但是实现之后占用了7010快一半的资源，多少有点离谱，而且HDMI还是不方便，所以就用linux内核中的fbtft驱动来实现显示，只占用了几个EMIO以及PS">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ZYNQ7000 SPI LCD与Petalinux">
+<meta property="og:url" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/index.html">
+<meta property="og:site_name" content="SunLee的停靠小站">
+<meta property="og:description" content="前言ZYNQ内部集成两个ARM Cortex A9核心，Xilinx也推出了Petalinux工具，与Vidado搭配可以方便地完成Linux的uboot、kernel、rootfs部署。开发板上集成了HDMI，但是需要在FPGA中实现逻辑，但是实现之后占用了7010快一半的资源，多少有点离谱，而且HDMI还是不方便，所以就用linux内核中的fbtft驱动来实现显示，只占用了几个EMIO以及PS">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-11-18-08.png">
+<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-11-32-13.png">
+<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-11-39-45.png">
+<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-08-24.png">
+<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-10-37.png">
+<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-11-29.png">
+<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-14-08.png">
+<meta property="article:published_time" content="2022-11-15T02:54:47.000Z">
+<meta property="article:modified_time" content="2022-11-15T05:20:19.876Z">
+<meta property="article:author" content="Sun Lee">
+<meta property="article:tag" content="ZYNQ">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-11-18-08.png">
+  
+  
+  
+  <title>ZYNQ7000 SPI LCD与Petalinux - SunLee的停靠小站</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.3","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"xuWnFNoXH0mtoZ210ssO8PpE-gzGzoHsz","app_key":"91PJAKLdMm6jdyuOn139MLFw","server_url":"https://xuwnfnox.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>SunLee的停靠小站</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/banner_img.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="ZYNQ7000 SPI LCD与Petalinux"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2022-11-15 10:54" pubdate>
+          2022年11月15日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          37 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">ZYNQ7000 SPI LCD与Petalinux</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>ZYNQ内部集成两个ARM Cortex A9核心，Xilinx也推出了Petalinux工具，与Vidado搭配可以方便地完成Linux的uboot、kernel、rootfs部署。<br>开发板上集成了HDMI，但是需要在FPGA中实现逻辑，但是实现之后占用了7010快一半的资源，多少有点离谱，而且HDMI还是不方便，所以就用linux内核中的fbtft驱动来实现显示，只占用了几个EMIO以及PS端的SPI即可实现。</p>
+<blockquote>
+<p>文中Vivado以及Petalinux版本均为v2018.3。</p>
+</blockquote>
+<h1 id="Vivado"><a href="#Vivado" class="headerlink" title="Vivado"></a>Vivado</h1><p>在上文的基础上在PS的ZYNQ7 Processing System中增加使能SD0，ETH0，QSPI Flash，视使用情况而定。<br>generate output products -&gt; create HDL wapper -&gt; Elaborated Design I&#x2F;O Ports -&gt; Generate Bitstream -&gt; Export Hardware（勾上include bitstream）。<br>启动一下SDK，在SDK的工作文件夹里找到system.hdf，拷出供Petalinux用。</p>
+<h1 id="Petalinux"><a href="#Petalinux" class="headerlink" title="Petalinux"></a>Petalinux</h1><p>Petalinux必须在Linux中运行，Vidado可以在Linux和Windows下运行。</p>
+<h2 id="Petalinux-Config"><a href="#Petalinux-Config" class="headerlink" title="Petalinux Config"></a>Petalinux Config</h2><p>安装玩Petalinx后，在每次打开终端之后要source一下petalinux安装目录下的setting.sh。<br>找一个目录新建vidado工程：<code>petalinux-create -t project --template zynq -n &lt;NAME&gt;</code><br>进工程目录在载入HDF硬件描述文件：<code>petalinux-config --get-hw-description=.</code><br>&#x3D;后面跟着的是hdf文件所在目录，如果就在当前目录下写个.就行。<br>此时会弹出petalinux的配置界面，一般没什么要改的，这里把根文件系统的形式改为SD card。<br>如果以后要更改这些设置就运行petalinux-config。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-11-18-08.png" srcset="/img/loading.gif" lazyload><br>Save保存，Exit退出。</p>
+<h2 id="Kernel-Config"><a href="#Kernel-Config" class="headerlink" title="Kernel Config"></a>Kernel Config</h2><p>一般都要配置一下内核，主要涉及到一些驱动，不过Petalinux已经帮助配置了大部分功能了，直接编译也可以启动。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-11-32-13.png" srcset="/img/loading.gif" lazyload><br>因为板子上连接了一块LCD屏幕，所以这里使能一下fbtft，这是一个Staging Driver，可以把很多LCD配置成fbx显示器。具体位置在Device Drivers → Staging drivers → Support for small TFT LCD display modules，空格使能到[*]，即直接编译进内核，再进去使能对应LCD的型号。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-11-39-45.png" srcset="/img/loading.gif" lazyload><br>保存，退出。</p>
+<h2 id="Device-Tree"><a href="#Device-Tree" class="headerlink" title="Device Tree"></a>Device Tree</h2><p>内核使能了驱动相应的功能，Linux ARM系统要把功能与设备连接起来还需要设备树。Petalinux工程的供用户修改设备树在&lt;工程目录&gt;&#x2F;project-spec&#x2F;meta-user&#x2F;recipes-bsp&#x2F;device-tree&#x2F;file&#x2F;下的system-user.dtsi文件夹内。还有一部分由Petalinx自动生成的设备树在&lt;用户目录&gt;&#x2F;components&#x2F;plnx_workspace&#x2F;device-tree&#x2F;device-tree&#x2F;下，从system-top.dts中可以看出来，用户可修改的设备树在最后，设备树有覆盖的功能呢，所以这里的设备树就不要动了，有需要添加的地方在system-user.dtsi中覆盖修改即可。<br>system-user.dtsi文件一般卖板子的会给模板，或者基于别的模板修改也行。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><code class="hljs c">/include/ <span class="hljs-string">&quot;system-conf.dtsi&quot;</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> GPIO_ACTIVE_HIGH 0</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> GPIO_ACTIVE_LOW  1</span><br>/ &#123;  <br>    model = <span class="hljs-string">&quot;Zybo Development Board&quot;</span>; <br>    compatible = <span class="hljs-string">&quot;zynq7010,zynq-7020&quot;</span>,<span class="hljs-string">&quot;xlnx,zynq-7000&quot;</span>;<br>    usb_phy0: phy0 &#123;<br>    		compatible = <span class="hljs-string">&quot;ulpi-phy&quot;</span>;<br>    		<span class="hljs-meta">#phy-cells = <span class="hljs-string">&lt;0&gt;</span>;</span><br>    		reg = &lt;<span class="hljs-number">0xe0002000</span> <span class="hljs-number">0x1000</span>&gt;;<br>    		view-port = &lt;<span class="hljs-number">0x170</span>&gt;;<br>    		drv-vbus;<br>	&#125;;<br>    leds &#123;<br>		compatible = <span class="hljs-string">&quot;gpio-leds&quot;</span>;<br><br>		gpio-led1 &#123;<br>			label = <span class="hljs-string">&quot;led1&quot;</span>;<br>			gpios = &lt;&amp;gpio0 <span class="hljs-number">56</span> GPIO_ACTIVE_HIGH&gt;;<br>			<span class="hljs-keyword">default</span>-state = <span class="hljs-string">&quot;off&quot;</span>;<br>		&#125;;<br><br>		gpio-led2 &#123;<br>			label = <span class="hljs-string">&quot;led2&quot;</span>;<br>			gpios = &lt;&amp;gpio0 <span class="hljs-number">57</span> GPIO_ACTIVE_HIGH&gt;;<br>			<span class="hljs-keyword">default</span>-state = <span class="hljs-string">&quot;on&quot;</span>;<br>		&#125;;<br><br>		gpio-led3 &#123;<br>			label = <span class="hljs-string">&quot;led3&quot;</span>;<br>			gpios = &lt;&amp;gpio0 <span class="hljs-number">58</span> GPIO_ACTIVE_HIGH&gt;;<br>			<span class="hljs-keyword">default</span>-state = <span class="hljs-string">&quot;off&quot;</span>;<br>		&#125;;<br><br>		gpio-led4 &#123;<br>			label = <span class="hljs-string">&quot;led4&quot;</span>;<br>			gpios = &lt;&amp;gpio0 <span class="hljs-number">59</span> GPIO_ACTIVE_HIGH&gt;;<br>			linux,<span class="hljs-keyword">default</span>-trigger = <span class="hljs-string">&quot;heartbeat&quot;</span>;<br>		&#125;;<br>	&#125;;<br>&#125;;<br>&amp;usb0&#123;<br>    dr_mode = <span class="hljs-string">&quot;host&quot;</span>;<br>    usb-phy = &lt;&amp;usb_phy0&gt;;<br>&#125;;<br>&amp;spi0 &#123;<br>    st7789v@<span class="hljs-number">0</span> &#123;<br>        status = <span class="hljs-string">&quot;okay&quot;</span>;<br>        compatible = <span class="hljs-string">&quot;sitronix,st7789v&quot;</span>;<br>       	reg = &lt;<span class="hljs-number">0</span>&gt;;<br>       	spi-max-frequency =&lt;<span class="hljs-number">32000000</span>&gt;;        <span class="hljs-comment">//SPI时钟32M</span><br>       	rotate =&lt;<span class="hljs-number">270</span>&gt;;<br>       	spi-cpol;<br>       	spi-cpha;<br>       	rgb;                           <span class="hljs-comment">//颜色格式RGB</span><br>       	fps =&lt;<span class="hljs-number">30</span>&gt;;                      <span class="hljs-comment">//刷新30帧率</span><br>       	buswidth =&lt;<span class="hljs-number">8</span>&gt;;                   <span class="hljs-comment">//总线宽度8</span><br>        reset-gpios=&lt;&amp;gpio0 <span class="hljs-number">55</span> GPIO_ACTIVE_HIGH&gt;;   <span class="hljs-comment">//EMIO 55</span><br>       	dc-gpios  =&lt;&amp;gpio0 <span class="hljs-number">54</span> GPIO_ACTIVE_LOW&gt;;   <span class="hljs-comment">//EMIO 54</span><br>	    width = &lt;<span class="hljs-number">240</span>&gt;;<br>        height= &lt;<span class="hljs-number">320</span>&gt;;<br>       	debug =&lt;<span class="hljs-number">0</span>&gt;;                     <span class="hljs-comment">//不开启调试</span><br>        &#125;;<br>&#125;;<br></code></pre></td></tr></table></figure>
+<p>在这里主要添加了四个LED，再在SPI总线上添加LCD显示屏参数，LCD显示屏上还有reset和dc两个GPIO要根据需求添加，这里要注意reset-gpios要设置成GPIO_ACTIVE_HIGH，dc-gpios要设置成GPIO_ACTIVE_LOW。</p>
+<h2 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h2><p>根文件系统就先不改啥了，直接运行<code>petalinux-build</code>编译。<br>system-user.dtsi写错了容易编译不通过，所以可以先不改system-user.dtsi编译，第一次通过之后再修改system-user.dtsi，然后只编译内核<code>petalinux-build -c kernel</code>。</p>
+<h2 id="打包再烧录到SD-card"><a href="#打包再烧录到SD-card" class="headerlink" title="打包再烧录到SD card"></a>打包再烧录到SD card</h2><p>编译通过后要进行打包，这里应该是考虑到petalinux运行在不同的系统上有不同的启动方式，所以打包需要手动运行。<br><code>petalinux-package --boot --fsbl --fpga --uboot --force</code><br>最后的镜像文件在&lt;工程目录&gt;&#x2F;images&#x2F;linux&#x2F;下，fsbl、bitstream以及uboot封装在BOOT.BIN文件中，芯片上电之后即在SD card的第一个分区中寻找这个文件，然后依次加载运行。kernel内核镜像为image.ub中，如果在petalinux设置中不配置根文件系统在SD card那么根文件系统也会在这个镜像文件中，猜测这个镜像会加载到内存中，导致linux运行时对根文件系统的修改断电会丢失。<br>根文件系统打包在很多个压缩文件中，这里用rootfs.tar.gz。<br>把SD卡挂到Ubuntu里，先对SD卡进行分区，用脚本挺麻烦的，可以用gparted工具来进行分区，’sudo gparted’。<br>第一个分区为fat32格式，大小约为100M，能放得下BOOT.BIN和image.ub就行，命名Label为“BOOT”。<br>第二个分区为ext4格式，可以把SD卡剩下的空间都分进去，命名Label为“rootfs”。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-08-24.png" srcset="/img/loading.gif" lazyload><br>然后在images&#x2F;linux&#x2F;文件夹里执行以下脚本:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-meta">#!/bin/sh</span><br>sudo <span class="hljs-built_in">rm</span> -rf /media/&lt;ubuntu用户&gt;/BOOT/*<br>sudo <span class="hljs-built_in">rm</span> -rf /media/&lt;ubuntu用户&gt;/rootfs/*<br>sudo <span class="hljs-built_in">cp</span> BOOT.BIN image.ub /media/&lt;ubuntu用户&gt;/BOOT/<br>sudo tar -zxvf rootfs.tar.gz -C /media/&lt;ubuntu用户&gt;/rootfs/<br>sudo umount /media/&lt;ubuntu用户&gt;/BOOT<br>sudo umount /media/&lt;ubuntu用户&gt;/rootfs<br></code></pre></td></tr></table></figure>
+<p>完成后拔出SD卡。</p>
+<h1 id="启动"><a href="#启动" class="headerlink" title="启动"></a>启动</h1><p>把SD卡插到板子上设置为SD卡启动，上电，如果成功，linux启动串口会打印信息。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-10-37.png" srcset="/img/loading.gif" lazyload><br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-11-29.png" srcset="/img/loading.gif" lazyload><br>LCD上也会显示命令行运行。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-14-08.png" srcset="/img/loading.gif" lazyload></p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>fbtft实现之后，在系统中&#x2F;dev&#x2F;下即会出现fb0，即linux系统下的显示器，现在就可以在根文件系统中部署图形界面以及qt、lvgl等应用。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ZYNQ/">#ZYNQ</a>
+      
+    </div>
+  
+</div>
+
+
+              
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/" title="ZYNQ7000 SDK部署LVGL">
+                        <span class="hidden-mobile">ZYNQ7000 SDK部署LVGL</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  <article id="comments" lazyload>
+    
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"xuWnFNoXH0mtoZ210ssO8PpE-gzGzoHsz","appKey":"91PJAKLdMm6jdyuOn139MLFw","path":"window.location.pathname","placeholder":null,"avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+  </article>
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

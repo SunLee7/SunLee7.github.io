@@ -1,6 +1,7 @@
+http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/
 http://example.com/2022/11/14/%E8%A5%BF%E6%BA%90%E5%A4%A7%E9%81%93-%E5%A4%A9%E6%B6%A6%E8%B7%AF/
 http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/
 http://example.com/about/index.html
 http://example.com/
-http://example.com/tags/Photo/
 http://example.com/tags/ZYNQ/
+http://example.com/tags/Photo/
