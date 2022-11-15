@@ -29,9 +29,9 @@
 <meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-08-24.png">
 <meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-10-37.png">
 <meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-11-29.png">
-<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-14-08.png">
+<meta property="og:image" content="http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/20221115132855.jpg">
 <meta property="article:published_time" content="2022-11-15T02:54:47.000Z">
-<meta property="article:modified_time" content="2022-11-15T05:20:19.876Z">
+<meta property="article:modified_time" content="2022-11-15T05:29:20.179Z">
 <meta property="article:author" content="Sun Lee">
 <meta property="article:tag" content="ZYNQ">
 <meta name="twitter:card" content="summary_large_image">
@@ -321,7 +321,7 @@
 <h2 id="打包再烧录到SD-card"><a href="#打包再烧录到SD-card" class="headerlink" title="打包再烧录到SD card"></a>打包再烧录到SD card</h2><p>编译通过后要进行打包，这里应该是考虑到petalinux运行在不同的系统上有不同的启动方式，所以打包需要手动运行。<br><code>petalinux-package --boot --fsbl --fpga --uboot --force</code><br>最后的镜像文件在&lt;工程目录&gt;&#x2F;images&#x2F;linux&#x2F;下，fsbl、bitstream以及uboot封装在BOOT.BIN文件中，芯片上电之后即在SD card的第一个分区中寻找这个文件，然后依次加载运行。kernel内核镜像为image.ub中，如果在petalinux设置中不配置根文件系统在SD card那么根文件系统也会在这个镜像文件中，猜测这个镜像会加载到内存中，导致linux运行时对根文件系统的修改断电会丢失。<br>根文件系统打包在很多个压缩文件中，这里用rootfs.tar.gz。<br>把SD卡挂到Ubuntu里，先对SD卡进行分区，用脚本挺麻烦的，可以用gparted工具来进行分区，’sudo gparted’。<br>第一个分区为fat32格式，大小约为100M，能放得下BOOT.BIN和image.ub就行，命名Label为“BOOT”。<br>第二个分区为ext4格式，可以把SD卡剩下的空间都分进去，命名Label为“rootfs”。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-08-24.png" srcset="/img/loading.gif" lazyload><br>然后在images&#x2F;linux&#x2F;文件夹里执行以下脚本:</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-meta">#!/bin/sh</span><br>sudo <span class="hljs-built_in">rm</span> -rf /media/&lt;ubuntu用户&gt;/BOOT/*<br>sudo <span class="hljs-built_in">rm</span> -rf /media/&lt;ubuntu用户&gt;/rootfs/*<br>sudo <span class="hljs-built_in">cp</span> BOOT.BIN image.ub /media/&lt;ubuntu用户&gt;/BOOT/<br>sudo tar -zxvf rootfs.tar.gz -C /media/&lt;ubuntu用户&gt;/rootfs/<br>sudo umount /media/&lt;ubuntu用户&gt;/BOOT<br>sudo umount /media/&lt;ubuntu用户&gt;/rootfs<br></code></pre></td></tr></table></figure>
 <p>完成后拔出SD卡。</p>
-<h1 id="启动"><a href="#启动" class="headerlink" title="启动"></a>启动</h1><p>把SD卡插到板子上设置为SD卡启动，上电，如果成功，linux启动串口会打印信息。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-10-37.png" srcset="/img/loading.gif" lazyload><br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-11-29.png" srcset="/img/loading.gif" lazyload><br>LCD上也会显示命令行运行。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-14-08.png" srcset="/img/loading.gif" lazyload></p>
+<h1 id="启动"><a href="#启动" class="headerlink" title="启动"></a>启动</h1><p>把SD卡插到板子上设置为SD卡启动，上电，如果成功，linux启动串口会打印信息。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-10-37.png" srcset="/img/loading.gif" lazyload><br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/2022-11-15-13-11-29.png" srcset="/img/loading.gif" lazyload><br>LCD上也会显示命令行运行。<br><img src="/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/20221115132855.jpg" srcset="/img/loading.gif" lazyload></p>
 <h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>fbtft实现之后，在系统中&#x2F;dev&#x2F;下即会出现fb0，即linux系统下的显示器，现在就可以在根文件系统中部署图形界面以及qt、lvgl等应用。</p>
 
                 
