@@ -1,4 +1,4 @@
-http://example.com/2022/11/17/%E7%A0%94%E7%A9%B6%E7%94%9F%E8%AE%BA%E6%96%87%E5%86%99%E4%BD%9C%E6%8C%87%E5%AF%BC/
+http://example.com/2022/11/19/%E9%93%B6%E6%9D%8F%E5%A4%A7%E9%81%93/
 http://example.com/2022/11/15/ZYNQ7000%E4%B8%8EPetalinux/
 http://example.com/2022/11/14/%E8%A5%BF%E6%BA%90%E5%A4%A7%E9%81%93-%E5%A4%A9%E6%B6%A6%E8%B7%AF/
 http://example.com/2022/11/14/ZYNQ7000-SDK%E9%83%A8%E7%BD%B2LVGL/
