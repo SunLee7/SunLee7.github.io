@@ -250,7 +250,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2023/03/21/ZYNQ%E4%BB%A5%E5%90%8E%E8%83%BD%E7%94%A8%E5%88%B0%E7%9A%84%E7%9B%B8%E5%85%B3%E5%86%85%E5%AE%B9/" target="_self">
         <div>
-          新建Petalinux工程： petalinux-create -t project --template zynq -n &lt;NAME&gt; 打包启动镜像： petalinux-package --boot --fsbl --fpga --uboot --force 烧录进SD卡流程： 12345678910#!/bin/shsudo rm -rf /media/sunlee/BOOT/*
+          新建Petalinux工程： petalinux-create -t project --template zynq -n &lt;NAME&gt; 导入vivado hdf文件：petalinux-config --get-hw-description=&lt;hdf所在目录&gt; 打包启动镜像： petalinux-package --boot --fsbl --fpga --uboot -
         </div>
       </a>
 
